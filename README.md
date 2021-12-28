@@ -69,7 +69,8 @@ for individual functions
 handler = (name, value, args) { ... }
 ```
 
-* `name` - the name of the parameter
+* `name` - the name of the argument
+* `value` - the value of the argument
 * `args` - the entire set of arguments
 
 #### handler opject
@@ -81,7 +82,8 @@ handler = {
 }
 ```
 
-* `name_x` - the name of the parameter
+* `name_x` - the name of the argument
+* `value_x` - the value of the argument
 * `args` - the entire set of arguments
 
 There is no need to define every needed parameter name. Any parameters not

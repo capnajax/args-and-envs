@@ -14,12 +14,12 @@ describe('command line forms', function() {
     default: 10
   }, {
     name: 'string',
-    arg: ['--str', '--string', '-s'],
+    arg: '--string',
     env: 'STRING',
     type: 'string'
   }, {
     name: 'boolean',
-    arg: '--boolean',
+    arg: ['--boolean', '-b'],
     type: 'boolean',
   }, {
     name: 'unspecified',
@@ -35,15 +35,15 @@ describe('command line forms', function() {
 
   it('integer', function(done) {
     let battery = new TestBattery('integer tests');
-    let handler = (name, args) => {
-      values[name] = args[name];
+    let handler = (name, value, args) => {      
+      values[name] = value;
     }
     let values = {};
 
     let errors = parse(optionsDef, {
-      argv: ['--integer=12'],
-      env: {}
-    }, {handler});
+      argv: ['--integer=12', '--required'],
+      env: {},
+      handler});
     battery.test('accepts integer - errors')
       .value(errors).is.nil;
     battery.test('accepts integer - long form')
@@ -51,27 +51,208 @@ describe('command line forms', function() {
       .value(12)
       .is.strictlyEqual;
 
-    global.args = {};
+    values = {};
     errors = parse(optionsDef, {
-      argv: ['-i 12'],
-      env: {}
+      argv: ['-i', '12', '-r'],
+      env: {},
+      handler
     });
     battery.test('accepts integer - short form')
-      .value(global.args.integer)
+      .value(values.integer)
       .value(12)
+      .is.strictlyEqual
 
-    global.args = {};
+    values = {};
     errors = parse(optionsDef, {
-      argv: [],
-      env: {}
+      argv: ['-r'],
+      env: {},
+      handler
     });
     battery.test('accepts integer - default value')
-      .value(global.args.integer)
+      .value(values.integer)
       .value(10)
+      .is.strictlyEqual;
+
+    values = {};
+    errors = parse(optionsDef, {
+      argv: ['-r'],
+      env: {INTEGER: 12},
+      handler
+    });
+    battery.test('integer from environment variable')
+      .value(values.integer)
+      .value(12)
       .is.strictlyEqual;
 
     battery.done(done);
 
   });
 
+  it('string', function(done) {
+    let battery = new TestBattery('string tests');
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let values = {};
+
+    let errors = parse(optionsDef, {
+      argv: ['--string=pineapple', '--required'],
+      env: {},
+      handler});
+    battery.test('accepts string - errors')
+      .value(errors).is.nil;
+    battery.test('accepts string - long form')
+      .value(values.string)
+      .value('pineapple')
+      .is.strictlyEqual;
+
+    values = {};
+    errors = parse(optionsDef, {
+      argv: ['-r'],
+      env: {},
+      handler
+    });
+    battery.test('accepts string - no default value')
+      .value(values.string)
+      .is.undefined;
+
+    values = {};
+    errors = parse(optionsDef, {
+      argv: ['-r'],
+      env: {STRING: 'pineapple'},
+      handler
+    });
+    battery.test('string from environment variable')
+      .value(values.string)
+      .value('pineapple')
+      .is.strictlyEqual;
+
+    battery.done(done);
+
+  });
+  
+  it('boolean', function(done) {
+    let battery = new TestBattery('string tests');
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let values = {};
+
+    let errors = parse(optionsDef, {
+      argv: ['--boolean=false', '--required'],
+      env: {},
+      handler});
+    battery.test('accepts boolean - errors')
+      .value(errors).is.nil;
+    battery.test('accepts boolean - long form')
+      .value(values.boolean)
+      .is.false;
+
+    values = {};
+    errors = parse(optionsDef, {
+      argv: ['-b', '-r'],
+      env: {},
+      handler
+    });
+    battery.test('accepts boolean - short form, implied true')
+      .value(values.boolean)
+      .is.true;
+
+    values = {};
+    errors = parse(optionsDef, {
+      argv: ['-r'],
+      env: {},
+      handler
+    });
+    battery.test('accepts boolean - no default value')
+      .value(values.boolean)
+      .is.undefined;
+
+    errors = parse(optionsDef, {
+      argv: ['--boolean=no', '--required'],
+      env: {},
+      handler});
+    battery.test('accepts boolean - other words for false')
+      .value(values.boolean)
+      .is.false;
+    
+    errors = parse(optionsDef, {
+      argv: ['--boolean=yes', '--required'],
+      env: {},
+      handler});
+    battery.test('accepts boolean - other words for true')
+      .value(values.boolean)
+      .is.true;
+  
+      
+    battery.done(done);
+
+  });
+  
+  it('unspecified', function(done) {
+    let battery = new TestBattery('unspecified tests');
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let values = {};
+
+    let errors = parse(optionsDef, {
+      argv: ['-u', 'pumpernickle', '--required'],
+      env: {},
+      handler});
+    battery.test('accepts unspecified - errors')
+      .value(errors).is.nil;
+    battery.test('accepts unspecified')
+      .value(values.unspecified)
+      .value('pumpernickle')
+      .is.strictlyEqual;
+
+    battery.done(done);
+  });
+
+  it('required', function(done) {
+    let battery = new TestBattery('required tests');
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let values = {};
+
+    let errors = parse(optionsDef, {
+      argv: ['--required'],
+      env: {},
+      handler});
+    battery.test('accepts required - errors')
+      .value(errors).is.nil;
+    battery.test('accepts required, implied true')
+      .value(values.required)
+      .is.true;
+
+    errors = parse(optionsDef, {
+      argv: ['--required=true'],
+      env: {},
+      handler});
+    battery.test('accepts required true')
+      .value(values.required)
+      .is.true;
+  
+    errors = parse(optionsDef, {
+      argv: ['--required=false'],
+      env: {},
+      handler});
+    battery.test('accepts required false')
+      .value(values.required)
+      .is.false;
+    
+    errors = parse(optionsDef, {
+      argv: [],
+      env: {},
+      handler});
+    battery.test('accepts required - not provided - has errors')
+      .value(errors).is.array;
+    battery.test('accepts required - not provided - has errors')
+      .value(errors.length).value(1).is.strictlyEqual;
+
+    battery.done(done);
+  })
+  
 });

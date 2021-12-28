@@ -43,7 +43,7 @@ function parse(optionsDef, options={}) {
       }
     }
 
-    switch (commandArg.type) {
+    switch (commandArg.type || 'string') {
     case 'boolean':
       let lc = argValue.toLocaleLowerCase();
       if (isTruthy(lc)) {
@@ -95,7 +95,7 @@ function parse(optionsDef, options={}) {
     }
 
     var argv = options.argv || process.argv.slice(2);
-    var env = options.argv || process.env;
+    var env = options.env || process.env;
 
     var handler = options.handler || (() => {});
     var validator = options.validator || (() => true);
@@ -116,9 +116,9 @@ function parse(optionsDef, options={}) {
           }
           objForms[o] = options[o];
           options[o] = (oo => {
-            return ((name, args) => {
+            return ((name, value, args) => {
               if (validator[oo].hasOwnProperty(name)) {
-                _handlerObj[name](args);
+                _handlerObj[name](value, args);
               } else {
                 return true;
               }
@@ -157,13 +157,14 @@ function parse(optionsDef, options={}) {
         }
       }else if (ca.arg === arg) {
         argFound = ca;
-      } else {
-        continue;
       }
-      break;
+      if (argFound) {
+        break;
+      }
     }
 
     if (argFound) {
+
       let argValue;
       if (fullArg !== arg) {
         argValue = normalizeValue(
@@ -174,7 +175,7 @@ function parse(optionsDef, options={}) {
           argValue = true;
         } else {
           argValue = normalizeValue(
-            argFound, process.argv[++argIdx]);
+            argFound, argv[++argIdx]);
         }
       }
       if (undefined === argValue) {
@@ -216,10 +217,13 @@ function parse(optionsDef, options={}) {
     if (missingButRequired) {
       missingArgs.add(ca.name);
       missingError = 'Missing required ';
-      if (ca.env && ca.arg) {
-        missingError += `argument ${ca.arg} or environment variable ${ca.env}`;
-      } else if (ca.arg) {
-        missingError += `argument ${ca.arg}`
+      let arg = ca.arg
+        ? (Array.isArray(ca.arg) ? ca.arg.join(', ')+',' : ca.arg)
+        : null;
+      if (ca.env && arg) {
+        missingError += `argument ${arg} or environment variable ${ca.env}`;
+      } else if (arg) {
+        missingError += `argument ${arg}`
       } else {
         missingError += `environment variable ${ca.env}`;
       }
@@ -228,13 +232,14 @@ function parse(optionsDef, options={}) {
   }
 
   // All the arguments are normalized. Let's validate them.
-  for (let ca of env) {
+  for (let ca of optionsDef) {
     if (missingArgs.has(ca.name)) {
       continue;
     }
-    let validationError = validator(ca.name, argValues);
-    if (validationError) {
-      errors.push(validationError);
+    let validationSuccess = validator(ca.name, argValues[ca.name], argValues);
+    if (!validationSuccess) {
+      errors.push(`Failed to validate "${ca.name}" parameter value "${
+        argValues[ca.name]}`);
     }
   }
 
@@ -245,10 +250,13 @@ function parse(optionsDef, options={}) {
     // order of `optionsDef`.
     for (let ca of optionsDef) {
       if (argValues.hasOwnProperty(ca.name)) {
-        handleArg(ca.name, argValues[ca.name]);
+        handler(ca.name, argValues[ca.name], argValues);
       }
     }
-    global.args = argValues.map(v=>v.value);
+    global.args = {};
+    for (let key of Object.keys(argValues)) {
+      global.args[key] = argValues[key].value;
+    }
     return null;
   }
 }
