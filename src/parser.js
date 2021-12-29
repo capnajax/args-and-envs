@@ -19,19 +19,19 @@ const SOURCE_ENV = 'ENV';
 const SOURCE_ARGV = 'ARGV';
 
 class Parser {
-  #args = {}; // the parsed arguments
-  #argv; // the command line arguments as provided
+
+  #argv = {}; // the parsed arguments
   #errors = [];
-  #env; // the environment variables as provided
 
-  #global = 'argv'
-  #optionsDef;
-  #parserOptions;
   #isParsed = false;
-
+  #global = 'argv';
   #handlers = [(name, value) => {
-    this.#args[name] = value;
+    this.#argv[name] = value;
   }];
+  #optionsDef;
+  #processArgv; // the command line arguments as provided
+  #processEnv; // the environment variables as provided
+  #parserOptions;
   #validators = [];
 
   constructor (optionsDef, parserOptions={}) {
@@ -40,8 +40,8 @@ class Parser {
       ? Object.fromEntries(Object.entries(parserOptions))
       : {};
 
-    this.#argv = parserOptions.argv || process.argv.slice(2);
-    this.#env = parserOptions.env || process.env;
+    this.#processArgv = parserOptions.argv || process.argv.slice(2);
+    this.#processEnv = parserOptions.env || process.env;
 
     // if handlers are in object form (name -> object), they must be converted
     // to function form to start.
@@ -154,8 +154,8 @@ class Parser {
     
     // first the command line arguments, in the order they were provided.
     let argIdx = 0;
-    while (argIdx < this.#argv.length) {
-      let fullArg = this.#argv[argIdx];
+    while (argIdx < this.#processArgv.length) {
+      let fullArg = this.#processArgv[argIdx];
       let arg = fullArg.replace(/=.*/, '');
       let argFound;
       argFound = false;
@@ -184,7 +184,7 @@ class Parser {
             argValue = true;
           } else {
             argValue = this.#normalizeValue(
-              argFound, this.#argv[++argIdx], SOURCE_ARGV);
+              argFound, this.#processArgv[++argIdx], SOURCE_ARGV);
           }
         }
         if (undefined === argValue) {
@@ -212,8 +212,8 @@ class Parser {
       let missingButRequired = false;
       if (argValues.hasOwnProperty(ca.name)) {
         // do nothing -- skip the env checking
-      } else if (this.#env.hasOwnProperty(ca.env)) {
-        let envValue = this.#env[ca.env];
+      } else if (this.#processEnv.hasOwnProperty(ca.env)) {
+        let envValue = this.#processEnv[ca.env];
         let normalizedValue = this.#normalizeValue(ca, envValue, SOURCE_ENV);
         // no need to report an error -- normalizeValue would have already
         // done that.
@@ -275,7 +275,7 @@ class Parser {
         }
       }
       if (this.#global) {
-        global[this.#global] = Object.fromEntries(Object.entries(this.#args));
+        global[this.#global] = Object.fromEntries(Object.entries(this.#argv));
       }          
       return true;
     }    
@@ -302,12 +302,40 @@ class Parser {
     }
     return valid;
   }
+
+  /**
+   * @method parse
+   * Run the parser.
+   * @returns `true` if the options were parsed successfully, `false` if there
+   *  is at least one error.
+   */
   parse() {
     this.#isParsed = true;
     return this.#parse();
   }
 
-  get errors() {
+  /**
+   * @method Tag#get.argv
+   * Returns an object containing the arguments this parse found in the command
+   *  line and environment variables. If the parser hasn't been run yet, this
+   *  method will run it automatically.
+   * @returns {object}
+   */
+   get argv() {
+    if (!this.#isParsed) {
+      this.parse();
+    }
+    return this.#argv;
+  }
+
+  /**
+   * @method Tag#get.errors
+   * If the parser found any errors in the command line / environment variables,
+   *  this will return a list of errors. If there are no errors in the command
+   *  line, this will return null;
+   * @returns {object|null}
+   */
+   get errors() {
     if (!this.#isParsed) {
       this.parse();
     }
@@ -316,13 +344,6 @@ class Parser {
     } else {
       return null;
     }
-  }
-
-  get args() {
-    if (!this.#isParsed) {
-      this.parse();
-    }
-    return this.#args;
   }
 }
 
@@ -354,7 +375,7 @@ function parse(optionsDef, options={}) {
   return parser.errors;
 }
 
-export default parse;
+export default Parser;
 export {
   parse,
   Parser,

@@ -12,26 +12,37 @@ npm install --save ags-and-envs
 
 ## Usage
 
+
 ```javascript
   import parse from 'args-and-envs';
 
+  // these are the command line arguments and environment variables we want
+  // to parse for.
   let optionsDef = [
-    { name: 'file',
-      arg: ['--file', '-f'],
+    { name: 'xfile',
+      arg: ['--xfile', '-x'],
       env: 'FILE',
       required: false
     }
   ];
 
+  // these are options for the parser.
   let parserOptions = {
-    handler: {
-      file: args => {args['file'].length < 16;}
+    validator: {
+      file: value => {value.length < 16;}
     }
   };
 
-  let errors = parse(optionsDef, parserOptions);
+  let parser = new Parser(optionsDef, parserOptions);
 
-  console.log(global.args.file);
+  parser.parse();
+
+  console.log(parser.errors);
+  console.log(parser.args);
+  console.log(global.argv);
+
+  // the xfile argument itself
+  console.log(global.args.xfile);
 ```
 
 The first paramter is an array containing information about the expected

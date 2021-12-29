@@ -1,9 +1,8 @@
 'use strict';
 
 import TestBattery from 'test-battery';
-import parse from '../index.js';
+import Parser, { parse } from '../index.js';
 import _ from 'lodash';
-import { Parser } from '../src/parser.js';
 
 const optionsDef = [{
   name: 'integer',
