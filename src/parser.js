@@ -19,18 +19,20 @@ const SOURCE_ENV = 'ENV';
 const SOURCE_ARGV = 'ARGV';
 
 class Parser {
+  #args = {}; // the parsed arguments
+  #argv; // the command line arguments as provided
+  #errors = [];
+  #env; // the environment variables as provided
+
+  #global = 'argv'
   #optionsDef;
   #parserOptions;
   #isParsed = false;
-  #values = {};
-  #errors = [];
 
-  #argv;
-  #env;
-
-  #handler;
-  #validator;
-  #objectForms;
+  #handlers = [(name, value) => {
+    this.#args[name] = value;
+  }];
+  #validators = [];
 
   constructor (optionsDef, parserOptions={}) {
     this.#optionsDef = optionsDef;
@@ -41,40 +43,30 @@ class Parser {
     this.#argv = parserOptions.argv || process.argv.slice(2);
     this.#env = parserOptions.env || process.env;
 
-    this.#handler = parserOptions.handler || (() => {});
-    this.#validator = parserOptions.validator || (() => true);
-
     // if handlers are in object form (name -> object), they must be converted
     // to function form to start.
-    this.#objectForms = {};
-    for (let o of ['#handler', '#validator']) {
-      switch (typeof this[o]) {
+    if (parserOptions.handler) {
+      Array.isArray(parserOptions.handler) 
+        ? this.#handlers.push.apply(this, parserOptions.handler)
+        : this.#handlers.push(parserOptions.handler);
+    }
+    if (parserOptions.validator) {
+      Array.isArray(parserOptions.validator) 
+        ? this.#validators.push.apply(this, parserOptions.validator)
+        : this.#validators.push(parserOptions.validator);
+    }
+  }
+
+  #handle(name, value, args) {
+    for (let h of this.#handlers) {
+      switch(typeof h) {
       case 'function':
-        // no need to change
+        h(name, value, args);
         break;
-      case 'object':
-        for (let i in Object.keys(this[o])) {
-          if (typeof handler[i] !== 'function') {
-            throw new Error(`parserOptions.${o}[${i}] must be a function`);
-          }
-          this.#objectForms[o] = this.#parserOptions[o];
-          this.#parserOptions[o] = (oo => {
-            return ((name, value, args) => {
-              if (this.#validator[oo].hasOwnProperty(name)) {
-                this.#objectForms[o][name](value, args);
-              } else {
-                return true;
-              }
-            });
-          })(o);
+      case 'object': 
+        if (typeof h[name] === 'function') {
+          h[name](value, args);
         }
-        break;
-      case 'undefined':
-        this.#parserOptions[o] = () => true;
-        break;
-      default: 
-        throw new Error(`parserOptions.${o} must be a function or an object of ` +
-          'name=function pairs');
       }
     }
   }
@@ -259,7 +251,7 @@ class Parser {
       if (missingArgs.has(ca.name)) {
         continue;
       }
-      let validationSuccess = this.#validator(
+      let validationSuccess = this.#validate(
         ca.name, argValues[ca.name], argValues);
       if (!validationSuccess) {
         this.#errors.push({
@@ -279,17 +271,37 @@ class Parser {
       // order of `optionsDef`.
       for (let ca of this.#optionsDef) {
         if (argValues.hasOwnProperty(ca.name)) {
-          this.#handler(ca.name, argValues[ca.name], argValues);
+          this.#handle(ca.name, argValues[ca.name], argValues);
         }
       }
-      global.args = {};
-      for (let key of Object.keys(argValues)) {
-        global.args[key] = argValues[key].value;
-      }
+      if (this.#global) {
+        global[this.#global] = Object.fromEntries(Object.entries(this.#args));
+      }          
       return true;
     }    
   }
 
+  #validate(name, value, args) {
+    let valid = true;
+    let loop = 0;
+    for (let v of this.#validators) {
+      switch(typeof v) {
+      case 'function':
+        if (!v(name, value, args)) {
+          valid = false;
+        }
+        break;
+      case 'object': 
+        if (typeof v[name] === 'function') {
+          if (!v[name](value, args)) {
+            valid = false;
+          }
+        }
+        break;
+      }
+    }
+    return valid;
+  }
   parse() {
     this.#isParsed = true;
     return this.#parse();
@@ -304,6 +316,13 @@ class Parser {
     } else {
       return null;
     }
+  }
+
+  get args() {
+    if (!this.#isParsed) {
+      this.parse();
+    }
+    return this.#args;
   }
 }
 

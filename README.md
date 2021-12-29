@@ -56,18 +56,19 @@ None of the parser options are required.
 
 | Name | Default | Description |
 | ---- | ------- | ----------- |
-| argv | `process.argv.slice(2)` | The command line arguments provided. Normally this comes from the process's command line itself, but this `argv` option allows you to override it, for example, for testing or embedding.
-| env | `process.env` | The environment variables. Normally this the same as the process's environment itself, but this `env` option allows you to override it, for example, for testing or embedding.
-| falsey | `FALSEY_STRINGS` | For `boolean` args, what values are understood to mean `false`. The default value contains a rather broad list of strings that all could mean `false`.
-| handler | `() => {}` | See [handler](#handler) below. The handler function is not called if neither the command line not environment variable for an option is provided, and the option does not have an default value.
-| truthy | `TRUTHY_STRINGS` | For `boolean` args, what values are understood to mean `true`. The default value contains a rather broad list of strings that all could mean `true`.
-| validator | `() => true` | Validators. These must return `true` or `false` and does not support promises. Same `object`/`function` form as [handler](#handler) below. The validator is called for all options, even if the user didn't provid it in the command line or environment variables, and there is no default values.
+| `argv` | `process.argv.slice(2)` | The command line arguments provided. Normally this comes from the process's command line itself, but this `argv` option allows you to override it, for example, for testing or embedding.
+| `env` | `process.env` | The environment variables. Normally this the same as the process's environment itself, but this `env` option allows you to override it, for example, for testing or embedding.
+| `falsey` | `FALSEY_STRINGS` | For `boolean` args, what values are understood to mean `false`. The default value contains a rather broad list of strings that all could mean `false`.
+| `handler` | `() => {}` | See [handler](#handler) below. The handler function is not called if neither the command line not environment variable for an option is provided, and the option does not have an default value.
+| `global` | `argv` | Sets a global variable to contain all the arguments. Set to `null` to prevent setting a global variable. |
+| `truthy` | `TRUTHY_STRINGS` | For `boolean` args, what values are understood to mean `true`. The default value contains a rather broad list of strings that all could mean `true`.
+| `validator` | `() => true` | Validators. These must return `true` or `false` and does not support promises. Same `object`/`function` form as [handler](#handler) below. The validator is called for all options, even if the user didn't provid it in the command line or environment variables, and there is no default values.
 
 ### handler
 
 The handler can be a function or an object. The function is called for all
 parameters; the object is a set of `key=function` pairs that are only called
-for individual functions
+for individual functions. If this is an Array, it'll run the handlers in the array order.
 
 #### handler functions
 
@@ -79,7 +80,7 @@ handler = (name, value, args) { ... }
 * `value` - the value of the argument
 * `args` - the entire set of arguments
 
-#### handler opject
+#### handler object
 
 ```javascript
 handler = {
@@ -101,12 +102,12 @@ If the command line cannot be parsed, it'll return a list of error objects with 
 
 | field | Description |
 | ----- | ----------- |
-| code  | The error code. One of `PARSE`, `TYPE_UNKNOWN`, `VALIDATION`, `UNKNOWN_ARG`, `MISSING_ARG` |
-| message | A friendly error message |
-| arg | The command line object as provided in the `optionsDef` array. Not provided if `code == UNKNOWN_ARG` |
-| source | Whether argument was provided by the `ARGV` or the environment variables, `ENV`. Not provided when `code == MISSING_ARG` |
-| argString | The whole command line argument word. For example `--foo=bar` would report the entire `--for=bar`, but `-f bar` would be `-f`. Only provided for `code == UNKNOWN_ARG` |
-| value | The raw value of the argument as a string. Provided if `code` is one of `PARSE`, `TYPE_UNKNOWN`, or `VALIDATION` |
+| `code`  | The error code. One of `PARSE`, `TYPE_UNKNOWN`, `VALIDATION`, `UNKNOWN_ARG`, `MISSING_ARG` |
+| `message` | A friendly error message |
+| `arg` | The command line object as provided in the `optionsDef` array. Not provided if `code == UNKNOWN_ARG` |
+| `source` | Whether argument was provided by the `ARGV` or the environment variables, `ENV`. Not provided when `code == MISSING_ARG` |
+| `argString` | The whole command line argument word. For example `--foo=bar` would report the entire `--for=bar`, but `-f bar` would be `-f`. Only provided for `code == UNKNOWN_ARG` |
+| `value` | The raw value of the argument as a string. Provided if `code` is one of `PARSE`, `TYPE_UNKNOWN`, or `VALIDATION` |
 
 ## Development
 
