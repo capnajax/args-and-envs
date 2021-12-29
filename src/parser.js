@@ -9,6 +9,15 @@ const FALSEY_STRINGS = [
   '0', 'low', 'l', // electronics
   'nyet', 'niet', 'geen', 'nein', 'non']; // other languages
 
+const ERROR_PARSE = 'PARSE';
+const ERROR_TYPE_UNKNOWN = 'TYPE_UNKNOWN';
+const ERROR_VALIDATION = 'VALIDATION';
+const ERROR_UNKNOWN_ARG = 'UNKNOWN_ARG';
+const ERROR_MISSING = 'MISSING_ARG';
+
+const SOURCE_ENV = 'ENV';
+const SOURCE_ARGV = 'ARGV';
+
 /**
  * @function parse
  * Parse a command line
@@ -33,9 +42,19 @@ const FALSEY_STRINGS = [
  */
 function parse(optionsDef, options={}) {
 
-  const normalizeValue = (commandArg, argValue) => {
+  const normalizeValue = (commandArg, argValue, source) => {
 
     let result = undefined;
+    let parseErrorMessage = () => {
+      errors.push({
+        code: ERROR_PARSE,
+        message: `Could not parse argument "${commandArg.name}" value "${
+          argValue}" as ${commandArg.type}.`,
+        arg: commandArg,
+        source,
+        value: argValue
+      })
+    }
 
     if (argValue === undefined || argValue === null) {
       if (commandArg.hasOwnProperty('default')) {
@@ -51,8 +70,7 @@ function parse(optionsDef, options={}) {
       } else if (isFalsey(lc)) {
         result = false;
       } else {
-        errors.push(`Could not parse argument "${commandArg.name}" value "${
-          argValue(commandArg.name)}" as boolean.`);
+        parseErrorMessage();
       }
       break;
 
@@ -60,9 +78,13 @@ function parse(optionsDef, options={}) {
       try {
         result = Number.parseInt(argValue);
       } catch(e) {
-        errors.push(`Could not parse argument "${commandArg.name}" value "${
-          argValue(commandArg.name)}" as a number.`);
-      }   
+        result = NaN;
+        parseErrorMessage();
+      }
+      if (Number.isNaN(result)) {
+        parseErrorMessage();
+        result = undefined;
+      }
       break;
 
     case 'string':
@@ -70,8 +92,14 @@ function parse(optionsDef, options={}) {
       break;
 
     default:
-      errors.push(`Type "${commandArg.type}" for argument "${commandArg.name
-      }" not known.`);
+      errors.push({
+        code: ERROR_TYPE_UNKNOWN,
+        message: `Type "${commandArg.type}" for argument "${commandArg.name
+          }" not known.`,
+        source,
+        arg: commandArg,
+        value: argValue
+      });
     }
 
     return result;
@@ -168,27 +196,30 @@ function parse(optionsDef, options={}) {
       let argValue;
       if (fullArg !== arg) {
         argValue = normalizeValue(
-          argFound, fullArg.match(/(?<==).*/g).shift());
+          argFound, fullArg.match(/(?<==).*/g).shift(), SOURCE_ARGV);
       } else {
         // @ts-ignore
         if (argFound.type === 'boolean') {
           argValue = true;
         } else {
           argValue = normalizeValue(
-            argFound, argv[++argIdx]);
+            argFound, argv[++argIdx], SOURCE_ARGV);
         }
       }
       if (undefined === argValue) {
-        // @ts-ignore
-        errors.push(`Invalid value on ${argFound.type} parameter ${fullArg}`); 
-        // no need to accept parameter. It can't be validated and now that
-        // there's aready an error, it won't be processed.
+        // if there is an error, it would have already been reported by
+        // normalizeValue. 
       } else {
         // @ts-ignore
         argValues[argFound.name] = argValue;        
       }
     } else {
-      errors.push(`Unknown command line switch: ${fullArg}`);
+      errors.push({
+        code: ERROR_UNKNOWN_ARG,
+        message: `Unknown command line switch: ${fullArg}`,
+        source: SOURCE_ARGV,
+        argString: fullArg
+      });
     }
     ++argIdx;
   }
@@ -202,10 +233,9 @@ function parse(optionsDef, options={}) {
       // do nothing -- skip the env checking
     } else if (env.hasOwnProperty(ca.env)) {
       let envValue = env[ca.env];
-      let normalizedValue = normalizeValue(ca, envValue);
-      if (undefined === normalizedValue) {
-        errors.push(`Invalid value on ${ca.type} env ${ca.env}: ${envValue}`);
-      }
+      let normalizedValue = normalizeValue(ca, envValue, SOURCE_ENV);
+      // no need to report an error -- normalizeValue would have already
+      // done that.
       argValues[ca.name] = normalizedValue;
     } else if (ca.default) {
       argValues[ca.name] = ca.default;
@@ -227,7 +257,11 @@ function parse(optionsDef, options={}) {
       } else {
         missingError += `environment variable ${ca.env}`;
       }
-      errors.push(missingError);
+      errors.push({
+        code: ERROR_MISSING,
+        messag: missingError,
+        arg: ca
+      });
     }
   }
 
@@ -238,8 +272,13 @@ function parse(optionsDef, options={}) {
     }
     let validationSuccess = validator(ca.name, argValues[ca.name], argValues);
     if (!validationSuccess) {
-      errors.push(`Failed to validate "${ca.name}" parameter value "${
-        argValues[ca.name]}`);
+      errors.push({
+        code: ERROR_VALIDATION,
+        message: `Failed to validate "${ca.name}" parameter value "${
+          argValues[ca.name]}"`,
+        arg: ca,
+        value: argValues[ca.name]
+      });
     }
   }
 

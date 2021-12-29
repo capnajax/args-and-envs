@@ -1,13 +1,18 @@
-# cli-parser
+# args-and-envs
 
 Command line and environment variable parser for all node apps.
 
 ## Installation
 
+```shell
+npm install --save ags-and-envs
+```
+
+
 ## Usage
 
 ```javascript
-  import parse from 'cli-parser';
+  import parse from 'args-and-envs';
 
   let optionsDef = [
     { name: 'file',
@@ -89,3 +94,15 @@ handler = {
 There is no need to define every needed parameter name. Any parameters not
 provided here will get the default handling.
 
+## Parse errors
+
+If the command line cannot be parsed, it'll return a list of error objects with the following data:
+
+| field | Description |
+| ----- | ----------- |
+| code  | The error code. One of `PARSE`, `TYPE_UNKNOWN`, `VALIDATION`, `UNKNOWN_ARG`, `MISSING_ARG` |
+| message | A friendly error message |
+| arg | The command line object as provided in the `optionsDef` array. Not provided if `code == UNKNOWN_ARG` |
+| source | Whether argument was provided by the `ARGV` or the environment variables, `ENV`. Not provided when `code == MISSING_ARG` |
+| argString | The whole command line argument word. For example `--foo=bar` would report the entire `--for=bar`, but `-f bar` would be `-f`. Only provided for `code == UNKNOWN_ARG` |
+| value | The raw value of the argument as a string. Provided if `code` is one of `PARSE`, `TYPE_UNKNOWN`, or `VALIDATION` |

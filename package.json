@@ -1,6 +1,6 @@
 {
-  "name": "cli-parser",
-  "version": "0.1.0",
+  "name": "args-and-envs",
+  "version": "0.1.1",
   "description": "Command line and environment variable parser for all node apps.",
   "type": "module",
   "main": "index.js",
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/capnajax/cli-parser.git"
+    "url": "git+https://github.com/capnajax/args-and-envs.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/capnajax/cli-parser/issues"
+    "url": "https://github.com/capnajax/args-and-envs/issues"
   },
-  "homepage": "https://github.com/capnajax/cli-parser#readme",
+  "homepage": "https://github.com/capnajax/args-and-envs#readme",
   "devDependencies": {
     "mocha": "^9.1.3",
     "test-battery": "^0.2.1"

@@ -2,36 +2,37 @@
 
 import TestBattery from 'test-battery';
 import parse from '../index.js';
+import _ from 'lodash';
+
+const optionsDef = [{
+  name: 'integer',
+  arg: ['--int', '--integer', '-i'],
+  env: 'INTEGER',
+  type: 'integer',
+  required: false,
+  default: 10
+}, {
+  name: 'string',
+  arg: '--string',
+  env: 'STRING',
+  type: 'string'
+}, {
+  name: 'boolean',
+  arg: ['--boolean', '-b'],
+  type: 'boolean',
+}, {
+  name: 'unspecified',
+  arg: '-u',
+  required: false
+}, {
+  name: 'required',
+  arg: ['--required', '-r'],
+  env: 'REQUIRED',
+  type: 'boolean',
+  required: true
+}];
 
 describe('command line forms', function() {
-
-  let optionsDef = [{
-    name: 'integer',
-    arg: ['--int', '--integer', '-i'],
-    env: 'INTEGER',
-    type: 'integer',
-    required: false,
-    default: 10
-  }, {
-    name: 'string',
-    arg: '--string',
-    env: 'STRING',
-    type: 'string'
-  }, {
-    name: 'boolean',
-    arg: ['--boolean', '-b'],
-    type: 'boolean',
-  }, {
-    name: 'unspecified',
-    arg: '-u',
-    required: false
-  }, {
-    name: 'required',
-    arg: ['--required', '-r'],
-    env: 'REQUIRED',
-    type: 'boolean',
-    required: true
-  }];
 
   it('integer', function(done) {
     let battery = new TestBattery('integer tests');
@@ -183,10 +184,8 @@ describe('command line forms', function() {
     battery.test('accepts boolean - other words for true')
       .value(values.boolean)
       .is.true;
-  
-      
+   
     battery.done(done);
-
   });
   
   it('unspecified', function(done) {
@@ -253,6 +252,42 @@ describe('command line forms', function() {
       .value(errors.length).value(1).is.strictlyEqual;
 
     battery.done(done);
-  })
+  })  
+});
+
+describe('exception handling', function() {
+
+  it('unparseable integer', function(done) {
+
+    let battery = new TestBattery('unparseable integer tests');
+
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let values = {};
   
+    let errors = parse(optionsDef, {
+      argv: [`--integer=notanumber`, `--required`],
+      env: {},
+      handler
+    });  
+    battery.test('reports error is array')
+      .value(errors).is.array;
+    battery.test('reports exactly one error')
+      .value(_.get(errors,'length'))
+      .value(1)
+      .is.equal;
+    battery.test('the error is a PARSE')
+      .value(_.get(_.first(errors), 'code'))
+      .value('PARSE')
+      .is.equal;
+    battery.test('the error ca is "integer"')
+      .value(_.get(_.first(errors), 'arg.name'))
+      .value('integer')
+      .is.equal;
+
+    battery.done(done);
+  });
+
+
 });
