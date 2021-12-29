@@ -2,12 +2,13 @@
 
 Command line and environment variable parser for all node apps.
 
+This package was specifically written for the needs of Kubernetes-hosted applications. On Kubernetes, it isn't always easy setting a command line option, especially if the value of said command line option needs to come from a secret. This allows you to provide environment variable substitutes for command line options, and treats them as equivalents.
+
 ## Installation
 
 ```shell
 npm install --save ags-and-envs
 ```
-
 
 ## Usage
 
@@ -43,7 +44,7 @@ The command line options object has these details:
 
 | Name | Required | Default | Description |
 | ---- | -------- | ------- | ----------- |
-| name | yes | - | The name of the option. This is what it'll look like in the `global.args` object |
+| name | yes | - | The name of the option. This is what it'll look like in the `global.args` object, as well as how `handler` and `validator` functions see it. |
 | argv  | no  | (none) | The command line arg. If there is a value, it'll accept `arg=value` or `arg value`. If this is an array, all forms in the array are checked. For example `['--file', '-f']` means `--file=foo.txt`, `--file foo.txt`, `-f=foo.txt`, and `-f foo.txt` are all accepted.
 | env | no | (none) | An environment variable that can also provide this value
 | required | no | `false` | If set to `true`, then it'll raise an error if the option is not provided.
@@ -106,3 +107,9 @@ If the command line cannot be parsed, it'll return a list of error objects with 
 | source | Whether argument was provided by the `ARGV` or the environment variables, `ENV`. Not provided when `code == MISSING_ARG` |
 | argString | The whole command line argument word. For example `--foo=bar` would report the entire `--for=bar`, but `-f bar` would be `-f`. Only provided for `code == UNKNOWN_ARG` |
 | value | The raw value of the argument as a string. Provided if `code` is one of `PARSE`, `TYPE_UNKNOWN`, or `VALIDATION` |
+
+## Development
+
+This package was specifically written for apps that run in Kubernetes, so future changes will mainly focus on features that would be useful to developers writing Kubernetes applications.
+
+Specifically, array types are prioritized and usage guide generators are deprioritized.

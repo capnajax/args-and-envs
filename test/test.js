@@ -3,6 +3,7 @@
 import TestBattery from 'test-battery';
 import parse from '../index.js';
 import _ from 'lodash';
+import { Parser } from '../src/parser.js';
 
 const optionsDef = [{
   name: 'integer',
@@ -249,10 +250,10 @@ describe('command line forms', function() {
     battery.test('accepts required - not provided - has errors')
       .value(errors).is.array;
     battery.test('accepts required - not provided - has errors')
-      .value(errors.length).value(1).is.strictlyEqual;
+      .value(_.get(errors, 'length')).value(1).is.strictlyEqual;
 
     battery.done(done);
-  })  
+  });  
 });
 
 describe('exception handling', function() {
@@ -427,6 +428,78 @@ describe('exception handling', function() {
 
     battery.done(done);
   });
-
-
 });
+
+describe('object form parser', function() {
+  it('integer', function(done) {
+    let battery = new TestBattery('integer tests');
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let values = {};
+
+    let parser = new Parser(optionsDef, {
+      argv: ['--integer=12', '--required'],
+      env: {},
+      handler});
+    parser.parse();
+
+    battery.test('accepts integer - errors')
+      .value(parser.errors).is.nil;
+    battery.test('accepts integer - long form')
+      .value(values.integer)
+      .value(12)
+      .is.strictlyEqual;
+
+    values = {};
+
+    parser = new Parser(optionsDef, {
+      argv: ['-i', '12', '-r'],
+      env: {},
+      handler
+    });
+    parser.parse();
+    battery.test('accepts integer - short form')
+      .value(values.integer)
+      .value(12)
+      .is.strictlyEqual
+
+    battery.done(done);
+
+  });
+  
+  it('unparseable integer', function(done) {
+
+    let battery = new TestBattery('unparseable integer tests');
+
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let values = {};
+  
+    let parser = new Parser(optionsDef, {
+      argv: [`--integer=notanumber`, `--required`],
+      env: {},
+      handler
+    })
+    parser.parse();
+    let errors = parser.errors;
+    battery.test('reports error is array')
+      .value(errors).is.array;
+    battery.test('reports exactly one error')
+      .value(_.get(errors,'length'))
+      .value(1)
+      .is.equal;
+    battery.test('the error is a PARSE')
+      .value(_.get(_.first(errors), 'code'))
+      .value('PARSE')
+      .is.equal;
+    battery.test('the error ca is "integer"')
+      .value(_.get(_.first(errors), 'arg.name'))
+      .value('integer')
+      .is.equal;
+
+    battery.done(done);
+  });
+
+})
