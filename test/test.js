@@ -289,5 +289,144 @@ describe('exception handling', function() {
     battery.done(done);
   });
 
+  it('unparseable boolean', function(done) {
+
+    let battery = new TestBattery('unparseable integer tests');
+
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let values = {};
+  
+    let errors = parse(optionsDef, {
+      argv: [`--boolean=whatever`, `--required`],
+      env: {},
+      handler
+    });  
+    battery.test('reports error is array')
+      .value(errors).is.array;
+    battery.test('reports exactly one error')
+      .value(_.get(errors,'length'))
+      .value(1)
+      .is.equal;
+    battery.test('the error is a PARSE')
+      .value(_.get(_.first(errors), 'code'))
+      .value('PARSE')
+      .is.equal;
+    battery.test('the error ca is "boolean"')
+      .value(_.get(_.first(errors), 'arg.name'))
+      .value('boolean')
+      .is.equal;
+
+    battery.done(done);
+  });
+
+  it('unknown parameter', function(done) {
+
+    let battery = new TestBattery('unparseable integer tests');
+
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let values = {};
+  
+    let errors = parse(optionsDef, {
+      argv: [`--unknown=unknowable`, `--required`],
+      env: {},
+      handler
+    });  
+    battery.test('reports error is array')
+      .value(errors).is.array;
+    battery.test('reports exactly one error')
+      .value(_.get(errors,'length'))
+      .value(1)
+      .is.equal;
+    battery.test('the error is an UNKNOWN_ARG')
+      .value(_.get(_.first(errors), 'code'))
+      .value('UNKNOWN_ARG')
+      .is.equal;
+    battery.test('the argString is the whole argument')
+      .value(_.get(_.first(errors), 'argString'))
+      .value('--unknown=unknowable')
+      .is.equal;
+
+    battery.done(done);
+  });
+
+  it('unknown type', function(done) {
+
+    let battery = new TestBattery('unparseable integer tests');
+
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let values = {};
+
+    let badOptionsDef = optionsDef.concat([{
+      name: 'badarg',
+      arg: '-x',
+      type: 'ugly',
+      required: false
+    }])
+  
+    let errors = parse(badOptionsDef, {
+      argv: [`--required`, '-x=wut'],
+      env: {},
+      handler
+    });  
+    battery.test('reports error is array')
+      .value(errors).is.array;
+    battery.test('reports exactly one error')
+      .value(_.get(errors,'length'))
+      .value(1)
+      .is.equal;
+    battery.test('the error is an TYPE_UNKNOWN')
+      .value(_.get(_.first(errors), 'code'))
+      .value('TYPE_UNKNOWN')
+      .is.equal;
+    battery.test('the value is provided')
+      .value(_.get(_.first(errors), 'value'))
+      .value('wut')
+      .is.equal;
+
+    battery.done(done);
+  });
+
+  it('validation', function(done) {
+
+    let battery = new TestBattery('unparseable integer tests');
+
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let validator = (name, value, args) => { 
+      return (name !== 'required');
+    }
+    let values = {};
+
+    let errors = parse(optionsDef, {
+      argv: [`--required`],
+      env: {},
+      handler,
+      validator
+    });  
+    battery.test('reports error is array')
+      .value(errors).is.array;
+    battery.test('reports exactly one error')
+      .value(_.get(errors,'length'))
+      .value(1)
+      .is.equal;
+    battery.test('the error is an VALIDATION')
+      .value(_.get(_.first(errors), 'code'))
+      .value('VALIDATION')
+      .is.equal;
+    battery.test('the value is provided')
+      .value(_.get(_.first(errors), 'value'))
+      .value(true)
+      .is.equal;
+
+    battery.done(done);
+  });
+
 
 });
