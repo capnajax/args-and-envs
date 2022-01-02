@@ -58,17 +58,25 @@ class Parser {
   }
 
   #handle(name, value, args) {
+    let result = value;
+    let updatedArgs = { ... args };
     for (let h of this.#handlers) {
+      let maybeNewValue;
       switch(typeof h) {
       case 'function':
-        h(name, value, args);
+        maybeNewValue = h(name, result, updatedArgs);
         break;
       case 'object': 
         if (typeof h[name] === 'function') {
-          h[name](value, args);
+          maybeNewValue = h[name](result, updatedArgs);
         }
       }
+      if (undefined !== maybeNewValue) {
+        value = maybeNewValue;
+        updatedArgs[name] = maybeNewValue;
+      }
     }
+    return value;
   }
 
   #isFalsey(str) {
@@ -134,6 +142,10 @@ class Parser {
       result = argValue;
       break;
 
+    case 'list':
+      result = argValue;
+      break;
+
     default:
       this.#errors.push({
         code: ERROR_TYPE_UNKNOWN,
@@ -192,9 +204,16 @@ class Parser {
           // normalizeValue. 
         } else {
           // @ts-ignore
-          argValues[argFound.name] = argValue;        
+          if (argFound.type === 'list') {
+            argValues[argFound.name] || (argValues[argFound.name] = []);
+            argValues[argFound.name].push(argValue);
+          } else {
+            argValues[argFound.name] = argValue;
+          }
         }
+
       } else {
+
         this.#errors.push({
           code: ERROR_UNKNOWN_ARG,
           message: `Unknown command line switch: ${fullArg}`,
@@ -202,6 +221,7 @@ class Parser {
           argString: fullArg
         });
       }
+
       ++argIdx;
     }
 
@@ -217,7 +237,9 @@ class Parser {
         let normalizedValue = this.#normalizeValue(ca, envValue, SOURCE_ENV);
         // no need to report an error -- normalizeValue would have already
         // done that.
-        argValues[ca.name] = normalizedValue;
+        argValues[ca.name] = ca.type === 'list' 
+          ? [ normalizedValue ]
+          : normalizedValue;
       } else if (ca.default) {
         argValues[ca.name] = ca.default;
       } else if (ca.required) {
@@ -271,7 +293,8 @@ class Parser {
       // order of `optionsDef`.
       for (let ca of this.#optionsDef) {
         if (argValues.hasOwnProperty(ca.name)) {
-          this.#handle(ca.name, argValues[ca.name], argValues);
+          argValues[ca.name] =
+            this.#handle(ca.name, argValues[ca.name], argValues);
         }
       }
       if (this.#global) {

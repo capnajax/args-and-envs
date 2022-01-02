@@ -17,6 +17,11 @@ const optionsDef = [{
   env: 'STRING',
   type: 'string'
 }, {
+  name: 'list',
+  arg: '--list',
+  env: 'LIST',
+  type: 'list'
+}, {
   name: 'boolean',
   arg: ['--boolean', '-b'],
   type: 'boolean',
@@ -125,6 +130,49 @@ describe('command line forms', function() {
     });
     battery.test('string from environment variable')
       .value(values.string)
+      .value('pineapple')
+      .is.strictlyEqual;
+
+    battery.done(done);
+
+  });
+  
+  it('list', function(done) {
+    let battery = new TestBattery('list tests');
+    let handler = (name, value, args) => {      
+      values[name] = value;
+    }
+    let values = {};
+
+    let errors = parse(optionsDef, {
+      argv: ['--list=pineapple', '--list=orange', '--required'],
+      env: {},
+      handler});
+    battery.test('accepts list - errors')
+      .value(errors).is.nil;
+    battery.test('accepts list - long form array')
+      .value(values.list).is.array;
+
+    battery.test('accepts list - long form value 0')
+      .value(values.list[0])
+      .value('pineapple')
+      .is.strictlyEqual;
+    battery.test('accepts list - long form value 1')
+      .value(values.list[1])
+      .value('orange')
+      .is.strictlyEqual;
+
+    values = {};
+    errors = parse(optionsDef, {
+      argv: ['-r'],
+      env: {LIST: 'pineapple'},
+      handler
+    });
+
+    battery.test('list from environment variable')
+      .value(values.list).is.array;
+    battery.test('list from environment variable value 0')
+      .value(values.list[0])
       .value('pineapple')
       .is.strictlyEqual;
 
@@ -254,6 +302,42 @@ describe('command line forms', function() {
     battery.done(done);
   });  
 });
+
+describe('argument handlers', function() {
+  it ('changes values', function() {
+    let battery = new TestBattery('required tests');
+    let handler = (name, value, args) => {      
+      values[name] = value;
+      if (name === 'list') {
+        let newResult = [];
+        value.forEach(v => {
+          newResult.push.apply(newResult, v.split(','));
+        });
+        values[name] = value;
+        return value;
+      }
+    }
+    let values = {};
+    let errors = parse(optionsDef, {
+      argv: ['-r'],
+      env: {LIST: 'pineapple,orange'},
+      handler
+    });
+
+    battery.test('accepts required - errors')
+      .value(errors).is.nil;
+    battery.test('list handler')
+      .value(values.list).is.array;
+    battery.test('list handler value 0')
+      .value(values.list[0])
+      .value('pineapple')
+      .is.strictlyEqual;
+    battery.test('list handler value 1')
+      .value(values.list[0])
+      .value('orange')
+      .is.strictlyEqual;
+  })
+})
 
 describe('exception handling', function() {
 

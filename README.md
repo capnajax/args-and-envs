@@ -59,7 +59,25 @@ The command line options object has these details:
 | argv  | no  | (none) | The command line arg. If there is a value, it'll accept `arg=value` or `arg value`. If this is an array, all forms in the array are checked. For example `['--file', '-f']` means `--file=foo.txt`, `--file foo.txt`, `-f=foo.txt`, and `-f foo.txt` are all accepted.
 | env | no | (none) | An environment variable that can also provide this value
 | required | no | `false` | If set to `true`, then it'll raise an error if the option is not provided.
-| type | no | `string` | Type of the data. Will only accept the value if it can be parsed to the given type. Allowed: `integer`, `string`, `boolean`
+| type | no | `string` | Type of the data. Will only accept the value if it can be parsed to the given type. Allowed: `integer`, `string`, `boolean`, and `list`.
+
+### A note about `list`s
+
+With the list type, the argument can appear multiple times in the command line. The parse will return an array of the values in that argument. For example a a script that takes multiple files with a command line like:
+
+```sh
+  $> script.js --file=text1.txt --file=text2.txt --file=text2
+```
+
+would parse to
+
+```javascript
+  { file: ['text1.txt', 'text2.txt'. 'text3.txt'] }
+```
+
+With environment variables, of course, the list can only have one element in it because of the limitations of environment variables.
+
+Lists can only get values from command line arguments or environment variables. Not both. Like all other parameters, if a command line argument exists, the environment variable is ignored.
 
 ## Parser options
 
@@ -70,7 +88,7 @@ None of the parser options are required.
 | `argv` | `process.argv.slice(2)` | The command line arguments provided. Normally this comes from the process's command line itself, but this `argv` option allows you to override it, for example, for testing or embedding.
 | `env` | `process.env` | The environment variables. Normally this the same as the process's environment itself, but this `env` option allows you to override it, for example, for testing or embedding.
 | `falsey` | `FALSEY_STRINGS` | For `boolean` args, what values are understood to mean `false`. The default value contains a rather broad list of strings that all could mean `false`.
-| `handler` | `() => {}` | See [handler](#handler) below. The handler function is not called if neither the command line not environment variable for an option is provided, and the option does not have an default value.
+| `handler` | `() => {}` | See [handler](#handler) below. The handler function is not called if neither the command line not environment variable for an option is provided, and the option does not have an default value. If the handler returns a value (including `null` but not `undefined`), it will change the value of that argument. Parameteres are validated before they are "handled".
 | `global` | `argv` | Sets a global variable to contain all the arguments. Set to `null` to prevent setting a global variable. |
 | `truthy` | `TRUTHY_STRINGS` | For `boolean` args, what values are understood to mean `true`. The default value contains a rather broad list of strings that all could mean `true`.
 | `validator` | `() => true` | Validators. These must return `true` or `false` and does not support promises. Same `object`/`function` form as [handler](#handler) below. The validator is called for all options, even if the user didn't provid it in the command line or environment variables, and there is no default values.
