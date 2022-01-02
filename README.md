@@ -91,6 +91,7 @@ None of the parser options are required.
 | `handler` | `() => {}` | See [handler](#handler) below. The handler function is not called if neither the command line not environment variable for an option is provided, and the option does not have an default value. If the handler returns a value (including `null` but not `undefined`), it will change the value of that argument. Parameteres are validated before they are "handled".
 | `global` | `argv` | Sets a global variable to contain all the arguments. Set to `null` to prevent setting a global variable. |
 | `truthy` | `TRUTHY_STRINGS` | For `boolean` args, what values are understood to mean `true`. The default value contains a rather broad list of strings that all could mean `true`.
+| `unknown` | `error` | How to handle unknown command line arguments. Must be `error`, `ignore`, or `capture`. If set it `capture`, it'll assign it to a list called `*`. This list is both validated and handled. Unknown environment variables are always ignored regardless of this option.
 | `validator` | `() => true` | Validators. These must return `true` or `false` and does not support promises. Same `object`/`function` form as [handler](#handler) below. The validator is called for all options, even if the user didn't provid it in the command line or environment variables, and there is no default values.
 
 ### handler

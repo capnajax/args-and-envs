@@ -18,6 +18,11 @@ const ERROR_MISSING = 'MISSING_ARG';
 const SOURCE_ENV = 'ENV';
 const SOURCE_ARGV = 'ARGV';
 
+const UNKNOWN_CAPTURE = 'capture';
+const UNKNOWN_ERROR = 'error';
+const UNKNOWN_IGNORE = 'ignore';
+const UNKNOWN_VALUES = [UNKNOWN_CAPTURE, UNKNOWN_ERROR, UNKNOWN_IGNORE];
+
 class Parser {
 
   #argv = {}; // the parsed arguments
@@ -55,6 +60,16 @@ class Parser {
         ? this.#validators.push.apply(this, parserOptions.validator)
         : this.#validators.push(parserOptions.validator);
     }
+
+    if (parserOptions.unknown) {
+      if (!UNKNOWN_VALUES.includes(parserOptions.unknown)) {
+        throw new Error(`Invalid option for unknown: "${parserOptions.unknown
+        }". Permitted values: ${UNKNOWN_VALUES}`);
+      }
+    } else {
+      this.#parserOptions.unknown = UNKNOWN_ERROR;
+    }
+
   }
 
   #handle(name, value, args) {
@@ -214,12 +229,23 @@ class Parser {
 
       } else {
 
-        this.#errors.push({
-          code: ERROR_UNKNOWN_ARG,
-          message: `Unknown command line switch: ${fullArg}`,
-          source: SOURCE_ARGV,
-          argString: fullArg
-        });
+        switch(this.#parserOptions.unknown) {
+        case UNKNOWN_CAPTURE:
+          argValues['*'] || (argValues['*'] = []);
+          argValues['*'].push(fullArg);
+          break;
+        case UNKNOWN_ERROR:
+          this.#errors.push({
+            code: ERROR_UNKNOWN_ARG,
+            message: `Unknown command line switch: ${fullArg}`,
+            source: SOURCE_ARGV,
+            argString: fullArg
+          });
+          break;
+        case UNKNOWN_IGNORE:
+          break;
+        }
+
       }
 
       ++argIdx;
@@ -297,8 +323,12 @@ class Parser {
             this.#handle(ca.name, argValues[ca.name], argValues);
         }
       }
+      if (argValues.hasOwnProperty('*')) {
+        argValues['*'] = this.#handle('*', argValues['*'], argValues)        
+      }
+      this.#argv = argValues;
       if (this.#global) {
-        global[this.#global] = Object.fromEntries(Object.entries(this.#argv));
+        global[this.#global] = { ... this.#argv };
       }          
       return true;
     }    

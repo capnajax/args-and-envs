@@ -336,7 +336,7 @@ describe('argument handlers', function() {
       .value(values.list[0])
       .value('orange')
       .is.strictlyEqual;
-  })
+  });
 })
 
 describe('exception handling', function() {
@@ -407,33 +407,41 @@ describe('exception handling', function() {
 
   it('unknown parameter', function(done) {
 
-    let battery = new TestBattery('unparseable integer tests');
+    let battery = new TestBattery('unknown parameter tests');
 
-    let handler = (name, value, args) => {      
-      values[name] = value;
-    }
-    let values = {};
-  
-    let errors = parse(optionsDef, {
+    let parser = new Parser(optionsDef, {
       argv: [`--unknown=unknowable`, `--required`],
-      env: {},
-      handler
-    });  
+      env: {}
+    });
+
     battery.test('reports error is array')
-      .value(errors).is.array;
+      .value(parser.errors).is.array;
     battery.test('reports exactly one error')
-      .value(_.get(errors,'length'))
+      .value(_.get(parser.errors,'length'))
       .value(1)
       .is.equal;
     battery.test('the error is an UNKNOWN_ARG')
-      .value(_.get(_.first(errors), 'code'))
+      .value(_.get(_.first(parser.errors), 'code'))
       .value('UNKNOWN_ARG')
       .is.equal;
     battery.test('the argString is the whole argument')
-      .value(_.get(_.first(errors), 'argString'))
+      .value(_.get(_.first(parser.errors), 'argString'))
       .value('--unknown=unknowable')
       .is.equal;
 
+    parser = new Parser(optionsDef, {
+      argv: [`--required`, `--unknown=unknowable`],
+      env: {},
+      unknown: 'capture'
+    });
+
+    battery.test('reports error is nil')
+      .value(parser.errors).is.nil;
+    battery.test('unknown-paramter is captured')
+      .value(parser.argv['*'])
+      .value(`--unknown=unknowable`)
+      .are.equal;
+  
     battery.done(done);
   });
 
