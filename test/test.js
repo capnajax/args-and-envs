@@ -593,4 +593,57 @@ describe('object form parser', function() {
     battery.done(done);
   });
 
-})
+});
+
+describe('global variables', function() {
+
+  it('default global variable', function(done) {
+    let battery = new TestBattery('default global variable');
+    delete global.argv;
+    let parser = new Parser(optionsDef, {
+      argv: ['--required'],
+    });
+    parser.parse();
+    battery.test('global.argv exists')
+      .value(global.argv).is.not.undefined;
+    battery.test('global.argv not null')
+      .value(global.argv).is.not.null;
+    battery.test('global.argv.required')
+      .value(global.argv && global.argv.required).is.true;
+    battery.done(done);
+  });
+
+  it('named global variable', function(done) {
+    let battery = new TestBattery('default global variable');
+    delete global.argv;
+    delete global.myargv;
+    let parser = new Parser(optionsDef, {
+      argv: ['--required'],
+      global: 'myargv'
+    });
+    parser.parse();
+    battery.test('global.argv does not exist')
+      .value(global.argv).is.undefined;
+    battery.test('global.myargv exists')
+      .value(global.myargv).is.not.undefined;
+    battery.test('global.myargv not null')
+      .value(global.myargv).is.not.null;
+    battery.test('global.myargv.required')
+      .value(global.myargv.required).is.true;
+    battery.done(done);
+    });
+
+  it('no global variable', function(done) {
+    let battery = new TestBattery('no global variable');
+    delete global.argv;
+    let parser = new Parser(optionsDef, {
+      argv: ['--required'],
+      global: null
+    });
+    parser.parse();
+    battery.test('global.argv does not exist')
+      .value(global.argv).is.undefined;
+    battery.done(done);
+    });
+
+});

@@ -55,9 +55,9 @@ The command line options object has these details:
 
 | Name | Required | Default | Description |
 | ---- | -------- | ------- | ----------- |
-| name | yes | - | The name of the option. This is what it'll look like in the `global.args` object, as well as how `handler` and `validator` functions see it. |
 | argv  | no  | (none) | The command line arg. If there is a value, it'll accept `arg=value` or `arg value`. If this is an array, all forms in the array are checked. For example `['--file', '-f']` means `--file=foo.txt`, `--file foo.txt`, `-f=foo.txt`, and `-f foo.txt` are all accepted.
 | env | no | (none) | An environment variable that can also provide this value
+| name | yes | - | The name of the option. This is what it'll look like in the `global.args` object, as well as how `handler` and `validator` functions see it. |
 | required | no | `false` | If set to `true`, then it'll raise an error if the option is not provided.
 | type | no | `string` | Type of the data. Will only accept the value if it can be parsed to the given type. Allowed: `integer`, `string`, `boolean`, and `list`.
 

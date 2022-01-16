@@ -1,6 +1,6 @@
 {
   "name": "args-and-envs",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Command line and environment variable parser for all node apps.",
   "type": "module",
   "main": "index.js",
@@ -19,6 +19,9 @@
   "homepage": "https://github.com/capnajax/args-and-envs#readme",
   "devDependencies": {
     "mocha": "^9.1.3",
-    "test-battery": "^0.2.1"
+    "test-battery": "^0.2.2"
+  },
+  "dependencies": {
+    "args-and-envs": "^0.4.1"
   }
 }

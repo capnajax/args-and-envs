@@ -61,6 +61,14 @@ class Parser {
         : this.#validators.push(parserOptions.validator);
     }
 
+    if (parserOptions && parserOptions.global) {
+      if (parserOptions.global) {
+        this.#global = parserOptions.global;
+      }
+    } else if (parserOptions.global === null) {
+      this.#global = null;
+    }
+
     if (parserOptions.unknown) {
       if (!UNKNOWN_VALUES.includes(parserOptions.unknown)) {
         throw new Error(`Invalid option for unknown: "${parserOptions.unknown
