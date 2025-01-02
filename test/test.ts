@@ -6,32 +6,32 @@ import { describe, it } from 'node:test';
 
 const optionsDef = [{
   name: 'integer',
-  arg: ['--int', '--integer', '-i'],
+  arg: [ '--int', '--integer', '-i' ],
   env: 'INTEGER',
   type: integerArg,
   required: false,
   default: 10
 }, {
   name: 'string',
-  arg: '--string',
+  arg: [ '--string' ],
   env: 'STRING',
   type: stringArg,
 }, {
   name: 'list',
-  arg: '--list',
+  arg: [ '--list' ],
   env: 'LIST',
   type: listArg,
 }, {
   name: 'boolean',
-  arg: ['--boolean', '-b'],
+  arg: [ '--boolean', '-b' ],
   type: booleanArg,
 }, {
   name: 'unspecified',
-  arg: '-u',
+  arg: [ '-u' ],
   required: false
 }, {
   name: 'required',
-  arg: ['--required', '-r'],
+  arg: [ '--required', '-r' ],
   env: 'REQUIRED',
   type: stringArg,
   required: true
@@ -45,7 +45,7 @@ describe('command line forms', function() {
     let values;
     try {
       values = parse({
-      argv: ['--integer=12', '--required'],
+      argv: ['--integer=12', '--required=ok'],
       env: {}}, optionsDef);
     battery.test('accepts integer - long form')
       .value(values.integer)
@@ -57,7 +57,7 @@ describe('command line forms', function() {
 
     try {
       values = parse({
-        argv: ['-i', '12', '-r'],
+        argv: ['-i', '12', '-r', 'ok'],
         env: {}
       }, optionsDef);
       battery.test('accepts integer - short form')
@@ -69,7 +69,7 @@ describe('command line forms', function() {
     }
 
     values = parse({
-      argv: ['-r'],
+      argv: ['-r', 'ok'],
       env: {}
     }, optionsDef);
     battery.test('accepts integer - default value')
@@ -78,7 +78,7 @@ describe('command line forms', function() {
       .is.strictlyEqual;
 
     values = parse({
-      argv: ['-r'],
+      argv: ['-r', 'ok'],
       env: {INTEGER: '12'}
     }, optionsDef);
     battery.test('integer from environment variable')
@@ -96,7 +96,7 @@ describe('command line forms', function() {
 
     try {
       values = parse({
-        argv: ['--string=pineapple', '--required'],
+        argv: ['--string=pineapple', '--required=ok'],
         env: {},
       }, optionsDef);
       battery.test('accepts string - long form')
@@ -109,7 +109,7 @@ describe('command line forms', function() {
     
     try {
       values = parse({
-        argv: ['-r'],
+        argv: ['-r', 'ok'],
         env: {}
       }, optionsDef);
       battery.test('accepts string - no default value')
@@ -121,7 +121,7 @@ describe('command line forms', function() {
 
     try {
       values = parse({
-        argv: ['-r'],
+        argv: ['-r', 'ok'],
         env: {STRING: 'pineapple'}
       }, optionsDef);
       battery.test('string from environment variable')
@@ -142,7 +142,7 @@ describe('command line forms', function() {
 
     try {
       values = parse({
-        argv: ['--list=pineapple', '--list=orange', '--required'],
+        argv: ['--list=pineapple', '--list=orange', '--required=ok'],
         env: {}
       }, optionsDef);
       battery.test('accepts list - long form array')
@@ -162,7 +162,7 @@ describe('command line forms', function() {
 
     try {
       values = parse({
-        argv: ['-r'],
+        argv: ['-r', 'ok'],
         env: {LIST: 'pineapple'}
       }, optionsDef);
 
@@ -186,7 +186,7 @@ describe('command line forms', function() {
 
     try {
       values = parse({
-        argv: ['--boolean=false', '--required'],
+        argv: ['--boolean=false', '--required=ok'],
         env: {}}, optionsDef);
       battery.test('accepts boolean - long form')
         .value(values.boolean)
@@ -197,7 +197,7 @@ describe('command line forms', function() {
 
     try {
       values = parse({
-        argv: ['-b', '-r'],
+        argv: ['-b', '-r', 'ok'],
         env: {}
       }, optionsDef);
       battery.test('accepts boolean - short form, implied true')
@@ -211,7 +211,7 @@ describe('command line forms', function() {
 
     try {
       values = parse({
-        argv: ['-r'],
+        argv: ['-r', 'ok'],
         env: {}
       }, optionsDef);
       battery.test('accepts boolean - no default value')
@@ -223,7 +223,7 @@ describe('command line forms', function() {
 
     try {
       values = parse({
-        argv: ['--boolean=no', '--required'],
+        argv: ['--boolean=no', '--required=ok'],
         env: {}}, optionsDef);
       battery.test('accepts boolean - other words for false')
         .value(values.boolean)
@@ -236,7 +236,7 @@ describe('command line forms', function() {
 
     try {
       values = parse({
-        argv: ['--boolean=yes', '--required'],
+        argv: ['--boolean=yes', '--required=ok'],
         env: {}}, optionsDef);
       battery.test('accepts boolean - other words for true')
         .value(values.boolean)
@@ -256,7 +256,7 @@ describe('command line forms', function() {
 
     try {
       values = parse({
-        argv: ['-u', 'pumpernickle', '--required'],
+        argv: ['-u', 'pumpernickle', '--required=ok'],
         env: {}}, optionsDef);
       battery.test('accepts unspecified')
         .value(values.unspecified)
@@ -280,7 +280,9 @@ describe('command line forms', function() {
         argv: [],
         env: {}}, optionsDef);
       // this is supposed to fail
-      battery.test('accepts required - not provided - has errors successful parse').fail;
+      battery.test(
+        'accepts required - not provided - has errors successful parse'
+      ).fail;
     } catch (e) {
     }
 
@@ -289,6 +291,7 @@ describe('command line forms', function() {
       name: 'list',
       arg: [ '--list-required', '-lr' ],
       type: listArg,
+      required: true
     })
     parser.parse();
     battery.test('accepts required list -- not provided - has errors')
@@ -298,349 +301,54 @@ describe('command line forms', function() {
 
     battery.done(done);
   });
+
+  it('positional arguments', function(t, done) {
+    let battery = new TestBattery('positional tests');
+
+    const parser = new Parser({
+      argv: [ '--required', 'ok', 'myfile.txt', 'yourfile.txt', 'herfile.txt' ],
+      env: {}
+    }, optionsDef);
+    parser.addOptions({
+      name: 'positional',
+      arg: 'positional'
+    });
+    const hasError = !parser.parse();
+    console.log('hasError:', hasError);
+    console.log('parser.args:', parser.args);
+    console.log('parser.errors:', parser.errors);
+    battery.test('positional type has no errors')
+      .value(hasError).is.false;
+    battery.endIfErrors();
+    battery.test('positional type defaults to array')
+      .value(parser.args.positional).is.array;
+    battery.test('positional param 0')
+      .value((parser.args.positional as string[])[0])
+      .value('myfile.txt').is.strictlyEqual;
+    battery.test('positional param 1')
+      .value((parser.args.positional as string[])[1])
+      .value('yourfile.txt').is.strictlyEqual;
+
+    battery.done(done);
+  });
+
 });
 
-// describe('argument handlers', function() {
-//   it ('changes values', function() {
-//     let battery = new TestBattery('required tests');
-//     let handler = (name, value, args) => {
-//       values[name] = value;
-//       if (name === 'list') {
-//         let newResult = [];
-//         value.forEach(v => {
-//           newResult.push.apply(newResult, v.split(','));
-//         });
-//         values[name] = value;
-//         return value;
-//       }
-//     }
-//     let values = {};
-//     let errors = parse(optionsDef, {
-//       argv: ['-r'],
-//       env: {LIST: 'pineapple,orange'},
-//       handler
-//     });
-
-//     battery.test('accepts required - errors')
-//       .value(errors).is.nil;
-//     battery.test('list handler')
-//       .value(values.list).is.array;
-//     battery.test('list handler value 0')
-//       .value(values.list[0])
-//       .value('pineapple')
-//       .is.strictlyEqual;
-//     battery.test('list handler value 1')
-//       .value(values.list[0])
-//       .value('orange')
-//       .is.strictlyEqual;
-//   });
-// })
-
-// describe('exception handling', function() {
-
-//   it('unparseable integer', function(done) {
-
-//     let battery = new TestBattery('unparseable integer tests');
-
-//     let handler = (name, value, args) => {
-//       values[name] = value;
-//     }
-//     let values = {};
-
-//     let errors = parse(optionsDef, {
-//       argv: [`--integer=notanumber`, `--required`],
-//       env: {},
-//       handler
-//     });
-//     battery.test('reports error is array')
-//       .value(errors).is.array;
-//     battery.test('reports exactly one error')
-//       .value(_.get(errors,'length'))
-//       .value(1)
-//       .is.equal;
-//     battery.test('the error is a PARSE')
-//       .value(_.get(_.first(errors), 'code'))
-//       .value('PARSE')
-//       .is.equal;
-//     battery.test('the error ca is "integer"')
-//       .value(_.get(_.first(errors), 'arg.name'))
-//       .value('integer')
-//       .is.equal;
-
-//     battery.done(done);
-//   });
-
-//   it('unparseable boolean', function(done) {
-
-//     let battery = new TestBattery('unparseable integer tests');
-
-//     let handler = (name, value, args) => {
-//       values[name] = value;
-//     }
-//     let values = {};
-
-//     let errors = parse(optionsDef, {
-//       argv: [`--boolean=whatever`, `--required`],
-//       env: {},
-//       handler
-//     });
-//     battery.test('reports error is array')
-//       .value(errors).is.array;
-//     battery.test('reports exactly one error')
-//       .value(_.get(errors,'length'))
-//       .value(1)
-//       .is.equal;
-//     battery.test('the error is a PARSE')
-//       .value(_.get(_.first(errors), 'code'))
-//       .value('PARSE')
-//       .is.equal;
-//     battery.test('the error ca is "boolean"')
-//       .value(_.get(_.first(errors), 'arg.name'))
-//       .value('boolean')
-//       .is.equal;
-
-//     battery.done(done);
-//   });
-
-//   it('unknown parameter', function(done) {
-
-//     let battery = new TestBattery('unknown parameter tests');
-
-//     let parser = new Parser(optionsDef, {
-//       argv: [`--unknown=unknowable`, `--required`],
-//       env: {}
-//     });
-
-//     battery.test('reports error is array')
-//       .value(parser.errors).is.array;
-//     battery.test('reports exactly one error')
-//       .value(_.get(parser.errors,'length'))
-//       .value(1)
-//       .is.equal;
-//     battery.test('the error is an UNKNOWN_ARG')
-//       .value(_.get(_.first(parser.errors), 'code'))
-//       .value('UNKNOWN_ARG')
-//       .is.equal;
-//     battery.test('the argString is the whole argument')
-//       .value(_.get(_.first(parser.errors), 'argString'))
-//       .value('--unknown=unknowable')
-//       .is.equal;
-
-//     parser = new Parser(optionsDef, {
-//       argv: [`--required`, `--unknown=unknowable`],
-//       env: {},
-//       unknown: 'capture'
-//     });
-
-//     battery.test('reports error is nil')
-//       .value(parser.errors).is.nil;
-//     battery.test('unknown-paramter is captured')
-//       .value(parser.argv['*'])
-//       .value(`--unknown=unknowable`)
-//       .are.equal;
-
-//     battery.done(done);
-//   });
-
-//   it('unknown type', function(done) {
-
-//     let battery = new TestBattery('unparseable integer tests');
-
-//     let handler = (name, value, args) => {
-//       values[name] = value;
-//     }
-//     let values = {};
-
-//     let badOptionsDef = optionsDef.concat([{
-//       name: 'badarg',
-//       arg: '-x',
-//       type: 'ugly',
-//       required: false
-//     }])
-
-//     let errors = parse(badOptionsDef, {
-//       argv: [`--required`, '-x=wut'],
-//       env: {},
-//       handler
-//     });
-//     battery.test('reports error is array')
-//       .value(errors).is.array;
-//     battery.test('reports exactly one error')
-//       .value(_.get(errors,'length'))
-//       .value(1)
-//       .is.equal;
-//     battery.test('the error is an TYPE_UNKNOWN')
-//       .value(_.get(_.first(errors), 'code'))
-//       .value('TYPE_UNKNOWN')
-//       .is.equal;
-//     battery.test('the value is provided')
-//       .value(_.get(_.first(errors), 'value'))
-//       .value('wut')
-//       .is.equal;
-
-//     battery.done(done);
-//   });
-
-//   it('validation', function(done) {
-
-//     let battery = new TestBattery('unparseable integer tests');
-
-//     let handler = (name, value, args) => {
-//       values[name] = value;
-//     }
-//     let validator = (name, value, args) => {
-//       return (name !== 'required');
-//     }
-//     let values = {};
-
-//     let errors = parse(optionsDef, {
-//       argv: [`--required`],
-//       env: {},
-//       handler,
-//       validator
-//     });
-//     battery.test('reports error is array')
-//       .value(errors).is.array;
-//     battery.test('reports exactly one error')
-//       .value(_.get(errors,'length'))
-//       .value(1)
-//       .is.equal;
-//     battery.test('the error is an VALIDATION')
-//       .value(_.get(_.first(errors), 'code'))
-//       .value('VALIDATION')
-//       .is.equal;
-//     battery.test('the value is provided')
-//       .value(_.get(_.first(errors), 'value'))
-//       .value(true)
-//       .is.equal;
-
-//     battery.done(done);
-//   });
-// });
-
-// describe('object form parser', function() {
-//   it('integer', function(done) {
-//     let battery = new TestBattery('integer tests');
-//     let handler = (name, value, args) => {
-//       values[name] = value;
-//     }
-//     let values = {};
-
-//     let parser = new Parser(optionsDef, {
-//       argv: ['--integer=12', '--required'],
-//       env: {},
-//       handler});
-//     parser.parse();
-
-//     battery.test('accepts integer - errors')
-//       .value(parser.errors).is.nil;
-//     battery.test('accepts integer - long form')
-//       .value(values.integer)
-//       .value(12)
-//       .is.strictlyEqual;
-
-//     values = {};
-
-//     parser = new Parser(optionsDef, {
-//       argv: ['-i', '12', '-r'],
-//       env: {},
-//       handler
-//     });
-//     parser.parse();
-//     battery.test('accepts integer - short form')
-//       .value(values.integer)
-//       .value(12)
-//       .is.strictlyEqual
-
-//     battery.done(done);
-
-//   });
-
-//   it('unparseable integer', function(done) {
-
-//     let battery = new TestBattery('unparseable integer tests');
-
-//     let handler = (name, value, args) => {
-//       values[name] = value;
-//     }
-//     let values = {};
-
-//     let parser = new Parser(optionsDef, {
-//       argv: [`--integer=notanumber`, `--required`],
-//       env: {},
-//       handler
-//     })
-//     parser.parse();
-//     let errors = parser.errors;
-//     battery.test('reports error is array')
-//       .value(errors).is.array;
-//     battery.test('reports exactly one error')
-//       .value(_.get(errors,'length'))
-//       .value(1)
-//       .is.equal;
-//     battery.test('the error is a PARSE')
-//       .value(_.get(_.first(errors), 'code'))
-//       .value('PARSE')
-//       .is.equal;
-//     battery.test('the error ca is "integer"')
-//       .value(_.get(_.first(errors), 'arg.name'))
-//       .value('integer')
-//       .is.equal;
-
-//     battery.done(done);
-//   });
-
-// });
-
-// describe('global variables', function() {
-
-//   it('default global variable', function(done) {
-//     let battery = new TestBattery('default global variable');
-//     delete global.argv;
-//     let parser = new Parser(optionsDef, {
-//       argv: ['--required'],
-//     });
-//     parser.parse();
-//     battery.test('global.argv exists')
-//       .value(global.argv).is.not.undefined;
-//     battery.test('global.argv not null')
-//       .value(global.argv).is.not.null;
-//     battery.test('global.argv.required')
-//       .value(global.argv && global.argv.required).is.true;
-//     battery.done(done);
-//   });
-
-//   it('named global variable', function(done) {
-//     let battery = new TestBattery('default global variable');
-//     delete global.argv;
-//     delete global.myargv;
-//     let parser = new Parser(optionsDef, {
-//       argv: ['--required'],
-//       global: 'myargv'
-//     });
-//     parser.parse();
-//     battery.test('global.argv does not exist')
-//       .value(global.argv).is.undefined;
-//     battery.test('global.myargv exists')
-//       .value(global.myargv).is.not.undefined;
-//     battery.test('global.myargv not null')
-//       .value(global.myargv).is.not.null;
-//     battery.test('global.myargv.required')
-//       .value(global.myargv.required).is.true;
-//     battery.done(done);
-//     });
-
-//   it('no global variable', function(done) {
-//     let battery = new TestBattery('no global variable');
-//     delete global.argv;
-//     let parser = new Parser(optionsDef, {
-//       argv: ['--required'],
-//       global: null
-//     });
-//     parser.parse();
-//     battery.test('global.argv does not exist')
-//       .value(global.argv).is.undefined;
-//     battery.done(done);
-//     });
-
-// });
+describe('argument handlers', function() {
+  it.todo('handlers that return same type');
+  it.todo('handlers that return different type');
+  it.todo('handlers that defer to next handler');
+});
+describe('regular exception handling', function() {
+  it.todo('unparseable integer');
+  it.todo('unparseable boolean');
+  it.todo('unknown parameter');
+});
+describe.todo('argument validation', () => {
+  it.todo('validation');
+  it.todo('validation with handler');
+  it.todo('validation of positional arguments');
+});
+describe.todo('global variables', function() {
+  it.todo('global variable set');
+});

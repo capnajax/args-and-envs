@@ -67,7 +67,7 @@ type Handler = (
 type Validator = (name:string, value:ArgType, args:ArgsArg)=>string|null|Symbol;
 
 export interface OptionsDef {
-  arg?: string|string[],
+  arg?: string[]|'positional',
   default?: ArgType,
   description?: string,
   env?: string,
@@ -80,7 +80,7 @@ export interface OptionsDef {
 }
 
 interface NormalizedOptionsDef {
-  arg: string[],
+  arg: string[]|'positional',
   default?: ArgType,
   description?: string,
   env: string|null,
@@ -97,8 +97,7 @@ export interface ParserOptions {
   env:Record<string, string>,
   falsey:string[],
   global: string|null,
-  truthy:string[],
-  unknown: 'error'|'ignore'|'capture'
+  truthy:string[]
 }
 
 export function argTypeName(name:string):ArgTypeName {
@@ -149,8 +148,7 @@ export class Parser {
     env: process.env as Record<string, string>,
     global: 'argv',
     falsey: FALSEY_STRINGS,
-    truthy: TRUTHY_STRINGS,
-    unknown: 'error'
+    truthy: TRUTHY_STRINGS
   };
 
   /**
@@ -304,7 +302,7 @@ export class Parser {
         handler: [],
         required: false,
         silent: false,
-        type: stringArg,
+        type: def.arg === 'positional' ? listArg : stringArg,
         validator: []
       }, def)];
     }
@@ -322,16 +320,13 @@ export class Parser {
       for (let argIdx = 0; argIdx < this.parserOptions.argv?.length; argIdx++) {
         const arg = this.parserOptions.argv[argIdx];
         let argSwitch = arg.replace(/=.*/, '');
-
-        // FIXME -- this is not right -- I need to iterate through the options
-        // and find the one that matches the switch, but also check for the
-        // that I am not hitting an option that has been overridden.
-
+        let foundOption = false;
         for (const optionName of Object.keys(this.options)) {
           if (
             this.options[optionName]?.length &&
             this.options[optionName][0].arg?.includes(argSwitch)
           ) {
+            foundOption = true;
             const optionDef = this.options[optionName][0];
             let value:ArgType = (
               arg === argSwitch
@@ -350,6 +345,22 @@ export class Parser {
             } else {
               this.normalizedValues[optionName] = value;
             }
+          }
+        }
+        if (!foundOption) {
+          // find the positional parameter
+          const positionalOption =
+            Object.keys(this.options).find(k => {
+              const o = this.options[k][0];
+              return (o.arg === 'positional');
+            });
+          if (positionalOption) {
+            this.normalizedValues[positionalOption] ||= ([] as string[]);
+            (this.normalizedValues[positionalOption] as string[]).push(arg);
+          } else {
+            this.errorValues ||= {};
+            this.errorValues[argSwitch] =
+              `Unknown command line option "${argSwitch}"`;  
           }
         }
       }
@@ -486,7 +497,7 @@ export class Parser {
     }
     this.freezeValues();
     this.hasNewOptions = false;
-  return !this.hasErrors();
+    return ! (this.errorValues && (Object.keys(this.errorValues))?.length > 0);
   }
 
   /**
@@ -519,7 +530,10 @@ export class Parser {
       for (const optionDef of this.options[optionName]) {
         if (
           optionDef.required &&
-          !Object.hasOwn(this.normalizedValues, optionDef.name)
+          ( ( ! Object.hasOwn(this.normalizedValues, optionDef.name) ) ||
+            this.normalizedValues[optionDef.name] === null ||
+            this.normalizedValues[optionDef.name] === undefined
+          )
         ) {
           this.errorValues ||= {};
           let errorMessage = `Missing required`;
@@ -551,9 +565,12 @@ export class Parser {
             errorMessage += ` environment variable "${optionDef.env}"`;
           }
           errorMessage += '.';
+          console.log('errorMessage:', errorMessage);
+          this.errorValues ||= {};
           this.errorValues[optionDef.name] = errorMessage;
           continue validationSequence;
         }
+
         if (optionDef.validator) {
           const validators = Array.isArray(optionDef.validator)
             ? optionDef.validator
