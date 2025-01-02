@@ -4,6 +4,9 @@ import TestBattery from 'test-battery';
 import Parser, { argTypeName, ArgTypeName, booleanArg, integerArg, listArg, parse, stringArg } from '../src/parser.js';
 import { describe, it } from 'node:test';
 
+/**
+ * A common set of options for testing with.
+ */
 const optionsDef = [{
   name: 'integer',
   arg: [ '--int', '--integer', '-i' ],
@@ -36,6 +39,29 @@ const optionsDef = [{
   type: stringArg,
   required: true
 }];
+
+describe('options definition validation', function() {
+  it.todo('rejects arguments with no name');
+  it.todo('rejects invalid argument types');
+  it.todo('rejects required arguments with default values');
+  it.todo('rejects if there are more than one `positional` or `--` arguments');
+  it.todo('rejects defaults of an incorrect type');
+  it.todo('rejects handlers with an incorrect signature');
+  it.todo('rejects validators with an incorrect signature');
+});
+
+describe('argument normalization exception handling', function() {
+  it.todo('unparseable integer');
+  it.todo('unparseable boolean');
+  it.todo('unknown parameter');
+});
+
+describe('command line context', function() {
+  it.todo('bare booleans without capturing following argument');
+  it.todo('bare arguments must be detected');
+  it.todo('double-dash captures all following arguments');
+  it.todo('double-dash with post-options captures all arguments as such');
+});
 
 describe('command line forms', function() {
 
@@ -339,16 +365,13 @@ describe('argument handlers', function() {
   it.todo('handlers that return different type');
   it.todo('handlers that defer to next handler');
 });
-describe('regular exception handling', function() {
-  it.todo('unparseable integer');
-  it.todo('unparseable boolean');
-  it.todo('unknown parameter');
-});
+
 describe.todo('argument validation', () => {
   it.todo('validation');
   it.todo('validation with handler');
   it.todo('validation of positional arguments');
 });
+
 describe.todo('global variables', function() {
   it.todo('global variable set');
 });

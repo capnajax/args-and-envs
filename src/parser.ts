@@ -67,7 +67,7 @@ type Handler = (
 type Validator = (name:string, value:ArgType, args:ArgsArg)=>string|null|Symbol;
 
 export interface OptionsDef {
-  arg?: string[]|'positional',
+  arg?: string[]|'positional'|'--',
   default?: ArgType,
   description?: string,
   env?: string,
