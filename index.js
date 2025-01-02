@@ -1,7 +1,7 @@
 'use strict';
 
 import Parser from './src/parser.js';
-import { 
+import {
   parse,
   TRUTHY_STRINGS,
   FALSEY_STRINGS
@@ -14,4 +14,3 @@ export {
   TRUTHY_STRINGS,
   FALSEY_STRINGS
 };
- 

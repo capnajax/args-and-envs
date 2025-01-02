@@ -2,6 +2,8 @@
 
 Command line and environment variable parser for all node apps.
 
+**Not stable**. This module went through a major redesign in 0.6.0. Many features are not yet implemented, and the interface may go through additional changes in the near future.
+
 This package was specifically written for the needs of Kubernetes-hosted applications. On Kubernetes, it isn't always easy setting a command line option, especially if the value of said command line option needs to come from a secret. This allows you to provide environment variable substitutes for command line options, and treats them as equivalents.
 
 ## Installation
@@ -12,13 +14,15 @@ npm install --save ags-and-envs
 
 ## Usage
 
+The simplest way to use this is to define an OptionsDef array and use the `parse` method to parse the values.
 
-```javascript
-  import parse from 'args-and-envs';
+```typescript
+  import process from 'node:process';
+  import { ParserOptions, OptionsDef, parse } from 'args-and-envs';
 
-  // these are the command line arguments and environment variables we want
-  // to parse for.
-  let optionsDef = [
+  const parserOptions:ParseOptions = {};
+
+  const optionsDef:OptionsDef = [
     { name: 'xfile',
       arg: ['--xfile', '-x'],
       env: 'FILE',
@@ -26,121 +30,78 @@ npm install --save ags-and-envs
     }
   ];
 
-  // these are options for the parser.
-  let parserOptions = {
-    validator: {
-      file: value => {value.length < 16;}
+  let parsedValues
+  try {
+    parsedValues = parse(parserOptions, optionsDef);
+  } catch(e) {
+    console.error('Failed to parse options:', e);
+    process.exit(1);
+  }
+```
+
+### ParseOptions
+
+The `ParserOptions` object determines the behaviour of the parser as a whole
+
+Note that, because this module is a work in progess, the stati are marked as follows:
+
+- 🟢 Complete with test coverage,
+- 🟡 Complete but without test coverage, and
+- 🔴 Not implemented.
+
+🚥 | Property | Default | Description
+--- | --- | --- | ---
+🟢 | `argv?: string[]` | `process.argv.slice(2)` | The arguments to parse as the command line. Should not include the name of the app itself.
+🟡 | `env?: Record<string, string>` | `process.env` | The environment variable set to pass into the parser.
+🟡 | `falsey?: string[]` | `['false', 'no', ...]` | A set of values to accept as meaning `false` for `boolean` arguments. Case insensitive.
+🔴 | `global?: string\|null` | `argv` | A global variable to set the parsed command line object to. For example, if the value is `argv`, the global variables can be accessed anywhere in the app as `global.argv`.
+🟡 | `truthy?: string[]` |  `['true', 'yes', ...]` | A set of values to accept as meaning `true` for `boolean` arguments. Case insensitive.
+🔴 | `unknown?` | `error` | How to handle unknown options in a command line. By default, throws an error, but `capture` could be useful for positional arguments. Valid values are `'error'`, `'ingnore'`, and `'capture'`
+
+### OptionsDef
+
+The `OptionsDef` object defines how individual options are handled. Options can be superceded by providing another option definition with the same `name`.
+
+Note that, because this module is a work in progess, the stati are marked as follows:
+
+- 🟢 Complete with test coverage,
+- 🟡 Complete but without test coverage, and
+- 🔴 Not implemented.
+
+🚥 | Property | Default | Description
+--- | --- | --- | ---
+🟢 | `arg: string[]` | `[]` | The argument switches to accept. A value of `[ '-o', '--output' ]` means `-o value`, `--output value`, `-o=value`, or `--output=value` would all be accepted.
+🟢 | `default?: ArgType` | `undefined` | The default value for an argument if it's not provided on the command line.
+🔴 | `description?: string` | `undefined` | A text description of the argument and its meaning. Limited markdown is supported. Used for generating documentation.
+🟡 | `env: string\|null` | `null` | An environment variable that can also be used to provide this option. If both the command line argument and the environment variable are present, the command line argument will win.
+🔴 | `handler: Handler\|Handler[]` | `[]` | A set of functions to handle the argument. The can change the value of an argument. Only the first handler is called, unless it `{next: true}`, in which case, it'll send its result to the next handler function. These functions must be idempotent, synchronous, and have no side effects. If no handlers are provided, the value of the argument is used unchanged.
+🟢 | `required: boolean` | `false` | Set to `true` if the argument is required. Will result in an error if it's not provided. Not applicable with `boolean` arguments, and a value not provided will be assumed `false`, and not applicable to options with default values.
+🔴 | `silent: boolean` | `false` | Set to `true` if the argument should not appear in generated documentation.
+🟢 | `type: ArgTypeName` | `stringArg` | The type of the argument. The valid values are `booleanArg`, `'integerArg`,`stringArg`, and `listArg`.
+🔴 | `validator: Validator\|Validator[]` | `[]` | Function that are called on command line options. They return `null` if the value is valid, a string if it is not valid, and `next` to defer to the next validator. These functions must be idempotent, synchronous, and have no side effects. If no validators for an option is provided, it'll assume the option is valid if they parse. A value that does not parse (e.g. an `integerArg` parameter value `'some-string'` does not parse as an integer) will always be invalid.
+
+### Parse object
+
+The example above is for the simplest use case. Most of the time it'll work, but there are cases where you might want to enhance an existing parser or handle errors more intelligently than what the case above provides.
+
+```typescript
+
+  import Parser from 'args-and-envs';
+
+  const parser = new Parser({});
+
+  // options can also be provided as additional parameters to the `Parse`
+  // constructor
+  parser.addOptions([
+    { name: 'xfile',
+      arg: ['--xfile', '-x'],
+      env: 'FILE',
+      required: false
     }
-  };
+  ]);
 
-  let parser = new Parser(optionsDef, parserOptions);
-
-  parser.parse();
-
-  console.log(parser.errors);
-  console.log(parser.args);
-  console.log(global.argv);
-
-  // the xfile argument itself
-  console.log(global.args.xfile);
+  // Complete the actual parsing operation
+  const hasErrors = parser.parse();
+  const values = parser.args;
+  const errors = parser.errors;
 ```
-
-The first paramter is an array containing information about the expected
-command line options. The second is a set of options for how the options
-should be parsed.
-
-## Command Line Options
-
-The command line options object has these details:
-
-| Name | Required | Default | Description |
-| ---- | -------- | ------- | ----------- |
-| argv  | no  | (none) | The command line arg. If there is a value, it'll accept `arg=value` or `arg value`. If this is an array, all forms in the array are checked. For example `['--file', '-f']` means `--file=foo.txt`, `--file foo.txt`, `-f=foo.txt`, and `-f foo.txt` are all accepted.
-| env | no | (none) | An environment variable that can also provide this value
-| name | yes | - | The name of the option. This is what it'll look like in the `global.args` object, as well as how `handler` and `validator` functions see it. |
-| required | no | `false` | If set to `true`, then it'll raise an error if the option is not provided.
-| type | no | `string` | Type of the data. Will only accept the value if it can be parsed to the given type. Allowed: `integer`, `string`, `boolean`, and `list`.
-
-### A note about `list`s
-
-With the list type, the argument can appear multiple times in the command line. The parse will return an array of the values in that argument. For example a a script that takes multiple files with a command line like:
-
-```sh
-  $> script.js --file=text1.txt --file=text2.txt --file=text2
-```
-
-would parse to
-
-```javascript
-  { file: ['text1.txt', 'text2.txt'. 'text3.txt'] }
-```
-
-With environment variables, of course, the list can only have one element in it because of the limitations of environment variables.
-
-Lists can only get values from command line arguments or environment variables. Not both. Like all other parameters, if a command line argument exists, the environment variable is ignored.
-
-## Parser options
-
-None of the parser options are required.
-
-| Name | Default | Description |
-| ---- | ------- | ----------- |
-| `argv` | `process.argv.slice(2)` | The command line arguments provided. Normally this comes from the process's command line itself, but this `argv` option allows you to override it, for example, for testing or embedding.
-| `env` | `process.env` | The environment variables. Normally this the same as the process's environment itself, but this `env` option allows you to override it, for example, for testing or embedding.
-| `falsey` | `FALSEY_STRINGS` | For `boolean` args, what values are understood to mean `false`. The default value contains a rather broad list of strings that all could mean `false`.
-| `handler` | `() => {}` | See [handler](#handler) below. The handler function is not called if neither the command line not environment variable for an option is provided, and the option does not have an default value. If the handler returns a value (including `null` but not `undefined`), it will change the value of that argument. Parameteres are validated before they are "handled".
-| `global` | `argv` | Sets a global variable to contain all the arguments. Set to `null` to prevent setting a global variable. |
-| `truthy` | `TRUTHY_STRINGS` | For `boolean` args, what values are understood to mean `true`. The default value contains a rather broad list of strings that all could mean `true`.
-| `unknown` | `error` | How to handle unknown command line arguments. Must be `error`, `ignore`, or `capture`. If set it `capture`, it'll assign it to a list called `*`. This list is both validated and handled. Unknown environment variables are always ignored regardless of this option.
-| `validator` | `() => true` | Validators. These must return `true` or `false` and does not support promises. Same `object`/`function` form as [handler](#handler) below. The validator is called for all options, even if the user didn't provid it in the command line or environment variables, and there is no default values.
-
-### handler
-
-The handler can be a function or an object. The function is called for all
-parameters; the object is a set of `key=function` pairs that are only called
-for individual functions. If this is an Array, it'll run the handlers in the array order.
-
-#### handler functions
-
-```javascript
-handler = (name, value, args) { ... }
-```
-
-* `name` - the name of the argument
-* `value` - the value of the argument
-* `args` - the entire set of arguments
-
-#### handler object
-
-```javascript
-handler = {
-  name1: function(value1, args) { ... },
-  name2: function(value2, args) { ... }
-}
-```
-
-* `name_x` - the name of the argument
-* `value_x` - the value of the argument
-* `args` - the entire set of arguments
-
-There is no need to define every needed parameter name. Any parameters not
-provided here will get the default handling.
-
-## Parse errors
-
-If the command line cannot be parsed, it'll return a list of error objects with the following data:
-
-| field | Description |
-| ----- | ----------- |
-| `code`  | The error code. One of `PARSE`, `TYPE_UNKNOWN`, `VALIDATION`, `UNKNOWN_ARG`, `MISSING_ARG` |
-| `message` | A friendly error message |
-| `arg` | The command line object as provided in the `optionsDef` array. Not provided if `code == UNKNOWN_ARG` |
-| `source` | Whether argument was provided by the `ARGV` or the environment variables, `ENV`. Not provided when `code == MISSING_ARG` |
-| `argString` | The whole command line argument word. For example `--foo=bar` would report the entire `--for=bar`, but `-f bar` would be `-f`. Only provided for `code == UNKNOWN_ARG` |
-| `value` | The raw value of the argument as a string. Provided if `code` is one of `PARSE`, `TYPE_UNKNOWN`, or `VALIDATION` |
-
-## Development
-
-This package was specifically written for apps that run in Kubernetes, so future changes will mainly focus on features that would be useful to developers writing Kubernetes applications.
-
-Specifically, array types are prioritized and usage guide generators are deprioritized.

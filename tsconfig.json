@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Node 16",
+  "compilerOptions": {
+    "allowJs": false,
+    "alwaysStrict": true,
+    "checkJs": false,
+    "diagnostics": false,
+    "esModuleInterop": true,
+    "extendedDiagnostics": false,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSourceMap": true,
+    "lib": ["es2022"],
+    "module": "es2022",
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "pretty": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2022"
+  },
+  "include": [
+    "test/*.ts",
+    "src/**/*.ts"
+  ]
+}

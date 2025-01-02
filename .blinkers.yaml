@@ -1,0 +1,31 @@
+---
+excludeDirs:
+  - node_modules
+fileTypes:
+  - patterns:
+      - regex: .*\.[jt]s$
+    exclude: []
+    tests:
+      - commentPatterns
+      - consoleLog
+      - type: test 
+        name: debugLogging
+        options:
+          debug:
+            find: Log.LEVEL_DEBUG
+            highlight: LEVEL_DEBUG
+          trace:
+            find: Log.LEVEL_TRACE
+            highlight: LEVEL_TRACE
+      - endInNewline
+      - longLines
+      - strictMode
+      - tabIndentation
+      - trailingSpaces
+  - patterns:
+      - regex: .*\.yaml$
+    exclude: []
+    tests:
+      - endInNewline
+options:
+  color: true
